@@ -1,0 +1,26 @@
+{
+  "name": "ingles-con-musica",
+  "version": "1.0.0",
+  "description": "Aplicación web interactiva para aprender inglés mediante canciones con videos de YouTube, letras y notas personalizadas",
+  "main": "index.html",
+  "scripts": {
+    "start": "npm run clean:ports && npm-run-all open:browser --parallel server:save server:web",
+    "clean:ports": "lsof -ti:8080 | xargs kill -9 2>/dev/null || true; lsof -ti:3001 | xargs kill -9 2>/dev/null || true; sleep 1",
+    "open:browser": "sleep 1 && open http://localhost:8080",
+    "server:save": "node server/save-songs-server.js",
+    "server:web": "python3 -m http.server 8080",
+    "dev": "npm start"
+  },
+  "keywords": [
+    "english",
+    "learning",
+    "music",
+    "lyrics",
+    "education"
+  ],
+  "author": "Conrado Ramos Rivas",
+  "license": "MIT",
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}

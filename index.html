@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aprende Inglés con Música</title>
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+  <header>
+    <h1>Aprende Inglés con Música</h1>
+    <div class="song-selector">
+      <label for="songSelect">Selecciona una canción:</label>
+      <div class="selector-wrapper">
+        <select id="songSelect">
+          <option value="">-- Elige una canción --</option>
+        </select>
+        <button id="addSongBtn" class="btn-add-song" title="Añadir Nueva Canción">+</button>
+      </div>
+    </div>
+
+    <!-- Menú hamburguesa -->
+    <div class="menu-container">
+      <button id="menuBtn" class="menu-btn" title="Menú">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav id="menuDropdown" class="menu-dropdown">
+        <a href="index.html" class="menu-item active">Reproducir Canciones</a>
+        <a href="manage-songs.html" class="menu-item">Gestionar Canciones</a>
+        <a href="verbs.html" class="menu-item">Verbos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Columna del Video y Notas -->
+    <section class="video-section">
+      <h2 id="songTitle">Selecciona una canción</h2>
+      <div id="videoContainer" class="video-wrapper">
+        <p class="placeholder-text">Selecciona una canción para comenzar</p>
+      </div>
+
+      <!-- Sección de Notas debajo del video -->
+      <div class="notes-section-below-video">
+        <div class="notes-header">
+          <h2>Mis Notas</h2>
+          <button id="addNoteBtn" class="btn-primary" disabled>+ Añadir Nota</button>
+        </div>
+        <div id="notesContainer" class="notes-content">
+          <p class="placeholder-text">Haz clic en una línea de la letra para añadir notas</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Columna de la Letra -->
+    <section class="lyrics-section">
+      <h2>Letra de la Canción</h2>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+        <strong>Tip:</strong> Click derecho en cualquier línea para añadir un tooltip
+      </p>
+      <div id="lyricsContainer" class="lyrics-content">
+        <p class="placeholder-text">La letra aparecerá aquí</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal para añadir/editar notas -->
+  <div id="noteModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Añadir Nota</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="selected-lyric">
+          <strong>Línea seleccionada:</strong>
+          <p id="selectedLyricText"></p>
+        </div>
+        <div class="form-group">
+          <label for="noteText">Tu nota (traducción, conjugación, etc.):</label>
+          <textarea id="noteText" rows="4" placeholder="Escribe tu nota aquí..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="noteLink">Enlace (opcional):</label>
+          <input type="url" id="noteLink" placeholder="https://ejemplo.com/conjugacion">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="saveNoteBtn" class="btn-primary">Guardar</button>
+        <button id="cancelNoteBtn" class="btn-secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para añadir nueva canción -->
+  <div id="addSongModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Añadir Nueva Canción</h3>
+        <button class="close-add-song-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="songArtistInput">Artista:</label>
+          <input type="text" id="songArtistInput" placeholder="Ej: Linkin Park">
+        </div>
+        <div class="form-group">
+          <label for="songTitleInput">Título de la canción:</label>
+          <input type="text" id="songTitleInput" placeholder="Ej: Numb">
+        </div>
+        <div class="form-group">
+          <label for="songYoutubeInput">URL de YouTube:</label>
+          <input type="url" id="songYoutubeInput" placeholder="https://www.youtube.com/watch?v=...">
+        </div>
+        <div class="form-group" id="manualLyricsGroup" style="display: none;">
+          <label for="songLyricsInput">Letra de la canción (opcional - añadir manualmente):</label>
+          <textarea id="songLyricsInput" rows="6"
+            placeholder="Pega aquí la letra de la canción si la API no la encuentra..."></textarea>
+          <small style="color: var(--text-secondary);">Puedes buscar la letra en genius.com o azlyrics.com</small>
+        </div>
+        <div id="fetchLyricsStatus" class="status-message"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="fetchLyricsBtn" class="btn-primary">Obtener Letra Automáticamente</button>
+        <button id="addManualLyricsBtn" class="btn-secondary" style="display: none;">Añadir con Letra Manual</button>
+        <button id="cancelAddSongBtn" class="btn-secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para añadir/editar tooltip -->
+  <div id="tooltipModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Añadir Tooltip a la Línea</h3>
+        <button class="close-tooltip-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="selected-lyric">
+          <strong>Línea seleccionada:</strong>
+          <p id="tooltipLyricText"></p>
+          <div class="lyric-actions">
+            <button id="copyLineBtn" class="btn-copy" title="Copiar texto en inglés">
+              Copiar
+            </button>
+            <button id="translateLineBtn" class="btn-translate" title="Traducir esta línea">
+              🌐 Traducir
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="tooltipText">Texto del tooltip (traducción, explicación, etc.):</label>
+          <textarea id="tooltipText" rows="4"
+            placeholder="Escribe el texto que aparecerá al hacer clic en la línea..."></textarea>
+          <small class="markdown-help">
+            <strong>Puedes usar Markdown:</strong><br><br>
+            • Enlaces: <code>[texto](url)</code> → <a href="#">texto</a><br>
+            • Negrita: <code>**texto**</code> → <strong>texto</strong><br>
+            • Cursiva: <code>*texto*</code> → <em>texto</em>
+          </small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="saveTooltipBtn" class="btn-primary">Confirmar</button>
+        <button id="removeTooltipBtn" class="btn-secondary" style="display: none;">Eliminar Tooltip</button>
+        <button id="cancelTooltipBtn" class="btn-secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para añadir/editar nota general de la canción -->
+  <div id="songNoteModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Nota General de la Canción</h3>
+        <button class="close-song-note-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="selected-lyric">
+          <strong>Canción:</strong>
+          <p id="songNoteTitle"></p>
+        </div>
+
+        <div class="form-group">
+          <label for="songNoteText">Nota general (contexto, significado, curiosidades, etc.):</label>
+          <textarea id="songNoteText" rows="6" placeholder="Escribe notas generales sobre esta canción..."></textarea>
+          <small class="markdown-help">
+            <strong>Puedes usar Markdown:</strong><br><br>
+            • Enlaces: <code>[texto](url)</code> → <a href="#">texto</a><br>
+            • Negrita: <code>**texto**</code> → <strong>texto</strong><br>
+            • Cursiva: <code>*texto*</code> → <em>texto</em>
+          </small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="saveSongNoteBtn" class="btn-primary">Guardar Nota</button>
+        <button id="removeSongNoteBtn" class="btn-secondary" style="display: none;">Eliminar Nota</button>
+        <button id="cancelSongNoteBtn" class="btn-secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/lyricsAPI.js"></script>
+  <script src="data/songs.js"></script>
+  <script src="js/script.js"></script>
+</body>
+
+</html>

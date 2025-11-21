@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conjugación de Verbos - Inglés con Música</title>
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+  <header>
+    <h1>Aprende Inglés con Música</h1>
+
+    <!-- Buscador de verbos en el header -->
+    <div class="song-selector">
+      <label for="verbInput">Buscar verbo:</label>
+      <div class="selector-wrapper">
+        <input type="text" id="verbInput" placeholder="Escribe un verbo en inglés (ej: speak, go, eat)..."
+          autocomplete="off">
+        <button id="searchBtn" class="btn-add-song" title="Buscar Verbo"><i data-lucide="search"></i> </button>
+      </div>
+    </div>
+
+    <!-- Menú hamburguesa -->
+    <div class="menu-container">
+      <button id="menuBtn" class="menu-btn" title="Menú">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav id="menuDropdown" class="menu-dropdown">
+        <a href="index.html" class="menu-item">Reproducir Canciones</a>
+        <a href="manage-songs.html" class="menu-item">Gestionar Canciones</a>
+        <a href="verbs.html" class="menu-item active">Verbos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container verbs-main">
+
+    <!-- Resultados de conjugación -->
+    <section id="resultsSection" class="results-section" style="display: none;">
+      <div class="verb-header">
+        <h2 id="verbTitle"></h2>
+        <button id="clearBtn" class="btn-clear">✖ Limpiar</button>
+      </div>
+
+      <div class="conjugation-grid">
+        <!-- Formas básicas -->
+        <div class="conjugation-card">
+          <h3>📝 Formas Básicas</h3>
+          <div class="conjugation-list" id="basicForms"></div>
+        </div>
+
+        <!-- Presente Simple -->
+        <div class="conjugation-card">
+          <h3>⏰ Presente Simple</h3>
+          <div class="conjugation-list" id="presentSimple"></div>
+        </div>
+
+        <!-- Pasado Simple -->
+        <div class="conjugation-card">
+          <h3>⏮️ Pasado Simple</h3>
+          <div class="conjugation-list" id="pastSimple"></div>
+        </div>
+
+        <!-- Participio -->
+        <div class="conjugation-card">
+          <h3>✨ Participio</h3>
+          <div class="conjugation-list" id="participle"></div>
+        </div>
+
+        <!-- Gerundio -->
+        <div class="conjugation-card">
+          <h3>🔄 Gerundio</h3>
+          <div class="conjugation-list" id="gerund"></div>
+        </div>
+
+        <!-- Forma negativa -->
+        <div class="conjugation-card">
+          <h3>🚫 Forma Negativa</h3>
+          <div class="conjugation-list" id="negative"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Estado inicial / placeholder -->
+    <section id="placeholderSection" class="placeholder-section">
+      <div class="placeholder-content">
+        <div class="placeholder-icon">📚</div>
+        <h2>Conjugador de Verbos en Inglés</h2>
+        <p>Busca cualquier verbo en inglés para ver todas sus conjugaciones</p>
+        <div class="example-verbs">
+          <p><strong>Ejemplos:</strong></p>
+          <div class="verb-chips">
+            <span class="verb-chip" data-verb="be">be</span>
+            <span class="verb-chip" data-verb="have">have</span>
+            <span class="verb-chip" data-verb="go">go</span>
+            <span class="verb-chip" data-verb="speak">speak</span>
+            <span class="verb-chip" data-verb="eat">eat</span>
+            <span class="verb-chip" data-verb="run">run</span>
+            <span class="verb-chip" data-verb="write">write</span>
+            <span class="verb-chip" data-verb="read">read</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mensaje de error -->
+    <section id="errorSection" class="error-section" style="display: none;">
+      <div class="error-content">
+        <div class="error-icon">⚠️</div>
+        <h3>No se encontró el verbo</h3>
+        <p id="errorMessage">Verifica que el verbo esté escrito correctamente en inglés.</p>
+        <button id="retryBtn" class="btn-secondary">↩️ Intentar de nuevo</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/verbs.js"></script>
+</body>
+
+</html>
