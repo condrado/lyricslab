@@ -209,6 +209,16 @@
     </div>
   </div>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase Config -->
+  <script type="module">
+    import { firebaseConfig } from './js/firebaseConfig.js';
+    window.firebaseConfig = firebaseConfig;
+  </script>
+
   <script src="js/lyricsAPI.js"></script>
   <script src="data/songs.js"></script>
   <script src="js/script.js"></script>

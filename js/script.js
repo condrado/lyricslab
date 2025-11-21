@@ -3,6 +3,8 @@ let currentSong = null;
 let selectedLineIndex = null;
 let notes = {}; // { songId: { lineIndex: { text, link } } }
 let songsData = []; // Copia mutable de songs
+let db = null; // Firestore database instance
+let useFirebase = false; // Flag para saber si Firebase está disponible
 
 // Elementos del DOM
 const songSelect = document.getElementById('songSelect');
@@ -55,13 +57,25 @@ const removeSongNoteBtn = document.getElementById('removeSongNoteBtn');
 const cancelSongNoteBtn = document.getElementById('cancelSongNoteBtn');
 
 // Inicializar la aplicación
-function init() {
+async function init() {
+    console.log('🚀 Inicializando aplicación...');
+    
     loadNotes();
-    loadSongsData();
-    syncSongsWithLocalStorage(); // Sincronizar songs.js con localStorage
+    
+    // Intentar inicializar Firebase
+    await initFirebase();
+    
+    // Cargar canciones desde Firebase o fallback a songs.js
+    if (useFirebase) {
+        await loadSongsFromFirebase();
+    } else {
+        loadSongsData();
+        syncSongsWithLocalStorage();
+    }
+    
     populateSongSelector();
     setupEventListeners();
-    setupBeforeUnloadHandler(); // Detectar cierre de pestaña
+    setupBeforeUnloadHandler();
     
     // Prioridad 1: Cargar canción desde manage-songs.html
     const savedIndexFromManage = localStorage.getItem('selectedSongIndex');
@@ -70,7 +84,6 @@ function init() {
         if (songIndex >= 0 && songIndex < songsData.length) {
             songSelect.value = songIndex;
             loadSong(songsData[songIndex]);
-            // Guardar como última canción y eliminar el temporal
             localStorage.setItem('lastSongIndex', songIndex);
             localStorage.removeItem('selectedSongIndex');
         }
@@ -85,6 +98,57 @@ function init() {
                 loadSong(songsData[songIndex]);
             }
         }
+    }
+    
+    console.log('✅ Aplicación inicializada');
+}
+
+// Inicializar Firebase
+async function initFirebase() {
+    try {
+        if (typeof firebase === 'undefined') {
+            console.warn('⚠️ Firebase SDK no disponible');
+            useFirebase = false;
+            return;
+        }
+        
+        if (typeof window.firebaseConfig === 'undefined') {
+            console.warn('⚠️ firebaseConfig no disponible');
+            useFirebase = false;
+            return;
+        }
+        
+        // Inicializar Firebase
+        firebase.initializeApp(window.firebaseConfig);
+        db = firebase.firestore();
+        useFirebase = true;
+        console.log('✅ Firebase inicializado correctamente');
+    } catch (error) {
+        console.warn('⚠️ Error al inicializar Firebase:', error);
+        console.log('📂 Usando modo local (localStorage)');
+        useFirebase = false;
+    }
+}
+
+// Cargar canciones desde Firebase
+async function loadSongsFromFirebase() {
+    try {
+        console.log('📡 Cargando canciones desde Firebase...');
+        const snapshot = await db.collection('songs').get();
+        songsData = [];
+        snapshot.forEach(doc => {
+            songsData.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        console.log(`✅ ${songsData.length} canciones cargadas desde Firebase`);
+    } catch (error) {
+        console.error('❌ Error al cargar desde Firebase:', error);
+        console.log('📂 Fallback a songs.js local');
+        useFirebase = false;
+        loadSongsData();
+        syncSongsWithLocalStorage();
     }
 }
 
@@ -741,19 +805,20 @@ async function handleFetchLyrics() {
         return;
     }
     
-    // Verificar si el servidor está disponible
-    const serverAvailable = await checkServerStatus();
-    if (!serverAvailable) {
-        showStatus('[WARNING] Servidor de guardado no disponible. Ejecuta: npm start', 'error');
-        
-        // Mostrar instrucciones adicionales
-        setTimeout(() => {
-            if (confirm('El servidor de guardado no está activo.\n\n¿Deseas ver las instrucciones para iniciarlo?')) {
-                alert('Para iniciar el servidor:\n\n1. Abre una terminal\n2. Ejecuta: npm start\n3. El servidor se iniciará en http://localhost:3001\n\nO alternativamente:\nnode server/save-songs-server.js');
-            }
-        }, 100);
-        
-        return;
+    // En modo local, verificar servidor
+    if (!useFirebase) {
+        const serverAvailable = await checkServerStatus();
+        if (!serverAvailable) {
+            showStatus('[WARNING] Servidor de guardado no disponible. Ejecuta: npm start', 'error');
+            
+            setTimeout(() => {
+                if (confirm('El servidor de guardado no está activo.\n\n¿Deseas ver las instrucciones para iniciarlo?')) {
+                    alert('Para iniciar el servidor:\n\n1. Abre una terminal\n2. Ejecuta: npm start\n3. El servidor se iniciará en http://localhost:3001\n\nO alternativamente:\nnode server/save-songs-server.js');
+                }
+            }, 100);
+            
+            return;
+        }
     }
     
     // Obtener letra
@@ -791,27 +856,45 @@ async function handleFetchLyrics() {
             return;
         }
         
-        // Crear nueva canción (sin propiedad custom)
+        // Crear nueva canción
         const newSong = {
-            id: LyricsAPI.generateSongId(artist, title),
             title: title,
             artist: artist,
             youtubeId: youtubeId,
             lyrics: lyrics.trim(),
-            tooltips: {}, // Inicializar tooltips vacío
-            songNote: "" // Inicializar nota vacía
+            tooltips: {},
+            songNote: ""
         };
         
-        // Añadir a la lista
-        songsData.push(newSong);
-        saveCustomSongs();
+        // Guardar en Firebase o localmente
+        if (useFirebase) {
+            try {
+                const docRef = await db.collection('songs').add({
+                    ...newSong,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                newSong.id = docRef.id;
+                songsData.push(newSong);
+                console.log('[FIREBASE] Canción añadida a Firebase con ID:', docRef.id);
+                showStatus('[OK] Canción añadida a Firebase!', 'success');
+            } catch (error) {
+                console.error('[FIREBASE] Error al añadir canción:', error);
+                showStatus('[ERROR] Error al guardar en Firebase: ' + error.message, 'error');
+                fetchLyricsBtn.disabled = false;
+                return;
+            }
+        } else {
+            newSong.id = LyricsAPI.generateSongId(artist, title);
+            songsData.push(newSong);
+            await saveCustomSongs();
+            showStatus('[OK] Canción añadida y guardada automáticamente!', 'success');
+        }
+        
         populateSongSelector();
         
         // Seleccionar la nueva canción
         songSelect.value = songsData.length - 1;
         handleSongChange({ target: songSelect });
-        
-        showStatus('[OK] Canción añadida y guardada automáticamente!', 'success');
         
         setTimeout(() => {
             closeAddSongModal();
@@ -863,38 +946,58 @@ async function handleAddManualLyrics() {
         return;
     }
     
-    // Verificar servidor
-    const serverAvailable = await checkServerStatus();
-    if (!serverAvailable) {
-        showStatus('[WARNING] Servidor de guardado no disponible. Ejecuta: npm start', 'error');
-        return;
+    // En modo local, verificar servidor
+    if (!useFirebase) {
+        const serverAvailable = await checkServerStatus();
+        if (!serverAvailable) {
+            showStatus('[WARNING] Servidor de guardado no disponible. Ejecuta: npm start', 'error');
+            return;
+        }
     }
     
     showStatus('Guardando canción...', 'loading');
     addManualLyricsBtn.disabled = true;
     
     try {
-        // Crear nueva canción (sin propiedad custom)
+        // Crear nueva canción
         const newSong = {
-            id: LyricsAPI.generateSongId(artist, title),
             title: title,
             artist: artist,
             youtubeId: youtubeId,
             lyrics: lyrics,
-            tooltips: {}, // Inicializar tooltips vacío
-            songNote: "" // Inicializar nota vacía
+            tooltips: {},
+            songNote: ""
         };
         
-        // Añadir a la lista
-        songsData.push(newSong);
-        saveCustomSongs();
+        // Guardar en Firebase o localmente
+        if (useFirebase) {
+            try {
+                const docRef = await db.collection('songs').add({
+                    ...newSong,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                newSong.id = docRef.id;
+                songsData.push(newSong);
+                console.log('[FIREBASE] Canción añadida a Firebase con ID:', docRef.id);
+                showStatus('[OK] Canción añadida a Firebase!', 'success');
+            } catch (error) {
+                console.error('[FIREBASE] Error al añadir canción:', error);
+                showStatus('[ERROR] Error al guardar en Firebase: ' + error.message, 'error');
+                addManualLyricsBtn.disabled = false;
+                return;
+            }
+        } else {
+            newSong.id = LyricsAPI.generateSongId(artist, title);
+            songsData.push(newSong);
+            await saveCustomSongs();
+            showStatus('[OK] Canción añadida y guardada automáticamente!', 'success');
+        }
+        
         populateSongSelector();
         
         // Seleccionar la nueva canción
         songSelect.value = songsData.length - 1;
         handleSongChange({ target: songSelect });
-        
-        showStatus('[OK] Canción añadida y guardada automáticamente!', 'success');
         
         setTimeout(() => {
             closeAddSongModal();
@@ -1091,12 +1194,25 @@ async function saveTooltip() {
         songsData[songIndex].tooltips = currentSong.tooltips;
     }
     
-    // Guardar en localStorage
-    localStorage.setItem('customSongs', JSON.stringify(songsData));
-    console.log('[TOOLTIP] Guardado en localStorage');
-    
-    // Guardar en servidor (songs.js)
-    await autoSaveToFile();
+    // Guardar en Firebase o localStorage
+    if (useFirebase) {
+        try {
+            await db.collection('songs').doc(currentSong.id).update({
+                tooltips: currentSong.tooltips,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('[FIREBASE] Tooltip guardado en Firebase');
+        } catch (error) {
+            console.error('[FIREBASE] Error al guardar tooltip:', error);
+        }
+    } else {
+        // Guardar en localStorage
+        localStorage.setItem('customSongs', JSON.stringify(songsData));
+        console.log('[TOOLTIP] Guardado en localStorage');
+        
+        // Guardar en servidor (songs.js)
+        await autoSaveToFile();
+    }
     
     // Recargar letra para mostrar tooltip en el HTML
     loadLyrics(currentSong);
@@ -1123,12 +1239,25 @@ async function removeTooltip() {
         songsData[songIndex].tooltips = currentSong.tooltips;
     }
     
-    // Guardar en localStorage
-    localStorage.setItem('customSongs', JSON.stringify(songsData));
-    console.log('[TOOLTIP] Eliminado de localStorage');
-    
-    // Guardar en servidor (songs.js)
-    await autoSaveToFile();
+    // Guardar en Firebase o localStorage
+    if (useFirebase && db) {
+        try {
+            await db.collection('songs').doc(currentSong.id).update({
+                tooltips: currentSong.tooltips || {},
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('[FIREBASE] ✅ Tooltip eliminado:', currentTooltipLineIndex);
+        } catch (error) {
+            console.error('[FIREBASE] ❌ Error al eliminar tooltip:', error);
+        }
+    } else {
+        // Guardar en localStorage
+        localStorage.setItem('customSongs', JSON.stringify(songsData));
+        console.log('[TOOLTIP] Eliminado de localStorage');
+        
+        // Guardar en servidor (songs.js)
+        await autoSaveToFile();
+    }
     
     // Recargar letra para actualizar HTML
     loadLyrics(currentSong);
@@ -1314,12 +1443,25 @@ async function saveSongNote() {
         songsData[songIndex].songNote = noteContent;
     }
     
-    // Guardar en localStorage
-    localStorage.setItem('customSongs', JSON.stringify(songsData));
-    console.log('[SONG NOTE] Guardado en localStorage');
-    
-    // Guardar en servidor (songs.js)
-    await autoSaveToFile();
+    // Guardar en Firebase o localStorage
+    if (useFirebase) {
+        try {
+            await db.collection('songs').doc(currentSong.id).update({
+                songNote: noteContent,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('[FIREBASE] Nota de canción guardada en Firebase');
+        } catch (error) {
+            console.error('[FIREBASE] Error al guardar nota:', error);
+        }
+    } else {
+        // Guardar en localStorage
+        localStorage.setItem('customSongs', JSON.stringify(songsData));
+        console.log('[SONG NOTE] Guardado en localStorage');
+        
+        // Guardar en servidor (songs.js)
+        await autoSaveToFile();
+    }
     
     closeSongNoteModal();
     
@@ -1332,6 +1474,7 @@ async function saveSongNote() {
         console.log(`[SONG NOTE] Nota eliminada de: ${currentSong.title}`);
     }
 }
+
 
 // Eliminar nota general de la canción
 async function removeSongNote() {
@@ -1347,12 +1490,49 @@ async function removeSongNote() {
         songsData[songIndex].songNote = '';
     }
     
-    // Guardar en localStorage
-    localStorage.setItem('customSongs', JSON.stringify(songsData));
-    console.log('[SONG NOTE] Nota eliminada de localStorage');
-    
-    // Guardar en servidor (songs.js)
-    await autoSaveToFile();
+    // Guardar en Firebase o localStorage
+    if (useFirebase && db) {
+        try {
+            const updateData = {
+                songNote: '',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            console.log('📤 DATOS QUE SE ENVÍAN A FIREBASE (removeSongNote):', {
+                docId: currentSong.id,
+                songNote: updateData.songNote,
+                songNoteLength: updateData.songNote.length,
+                songNoteType: typeof updateData.songNote,
+                songNoteValue: JSON.stringify(updateData.songNote)
+            });
+            
+            await db.collection('songs').doc(currentSong.id).update(updateData);
+            
+            console.log('[FIREBASE] ✅ Nota eliminada de Firebase');
+            
+            // Validar que se guardó correctamente
+            const docRef = await db.collection('songs').doc(currentSong.id).get();
+            const savedData = docRef.data();
+            console.log('📥 VALIDACIÓN - Datos guardados en Firebase:', {
+                songNote: savedData.songNote,
+                songNoteLength: savedData.songNote ? savedData.songNote.length : 0,
+                songNoteType: typeof savedData.songNote,
+                songNoteIsEmpty: savedData.songNote === '',
+                songNoteValue: JSON.stringify(savedData.songNote)
+            });
+        } catch (error) {
+            console.error('[FIREBASE] ❌ Error al eliminar nota:', error);
+            alert('Error al eliminar nota en Firebase: ' + error.message);
+            return;
+        }
+    } else {
+        // Guardar en localStorage
+        localStorage.setItem('customSongs', JSON.stringify(songsData));
+        console.log('[SONG NOTE] Nota eliminada de localStorage');
+        
+        // Guardar en servidor (songs.js)
+        await autoSaveToFile();
+    }
     
     closeSongNoteModal();
     

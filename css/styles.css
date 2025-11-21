@@ -331,6 +331,10 @@ section h2 {
   padding-bottom: 0;
 }
 
+.notes-header .btn-primary {
+  width: auto;
+}
+
 .notes-controls {
   margin-bottom: 1rem;
   flex-shrink: 0;
@@ -964,28 +968,6 @@ section h2 {
   background: var(--primary-color);
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-  .container {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .container {
-    grid-template-columns: 1fr;
-  }
-
-  header h1 {
-    font-size: 1.5rem;
-  }
-
-  .modal-content {
-    width: 95%;
-    margin: 1rem;
-  }
-}
-
 /* ============================================
    MENÚ HAMBURGUESA
    ============================================ */
@@ -1286,29 +1268,7 @@ section h2 {
   border-left: 3px solid var(--primary-color);
 }
 
-/* Responsive para manage-songs */
-@media (max-width: 768px) {
-  .song-card {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
 
-  .song-card-header {
-    flex-direction: column;
-    gap: 0.5rem;
-    width: 100%;
-  }
-
-  .song-meta {
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .delete-btn {
-    width: 100%;
-  }
-}
 
 /* ============================================
    PÁGINA DE VERBOS
@@ -1584,8 +1544,312 @@ section h2 {
   color: white;
 }
 
-/* Responsive para verbos */
+
+
+/* =================================
+   GESTIÓN DE CANCIONES - EDITAR TOOLTIPS Y NOTAS
+   ================================= */
+
+.btn-edit-song {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-edit-song:hover {
+  background: #357ae8;
+  transform: translateY(-1px);
+}
+
+.edit-song-section {
+  background: var(--card-background);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.edit-song-section h3 {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.lyrics-editor {
+  background: #f9f9f9;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.lyric-line-editable {
+  padding: 0.5rem;
+  margin: 0.25rem 0;
+  border-radius: 4px;
+  transition: all 0.2s;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lyric-line-editable:hover {
+  background: #e8f4fd;
+}
+
+.lyric-line-editable.has-tooltip {
+  background: #e3f2fd;
+  border-left: 3px solid var(--primary-color);
+  padding-left: 1rem;
+}
+
+.lyric-text {
+  flex: 1;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.tooltip-indicator {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+.tooltip-editor {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+
+.tooltip-editor textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.tooltip-editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.btn-save-tooltip {
+  background: var(--success-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-save-tooltip:hover {
+  background: #0f9d58;
+}
+
+.btn-remove-tooltip {
+  background: var(--error-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-remove-tooltip:hover {
+  background: #c62828;
+}
+
+.btn-cancel-tooltip {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-cancel-tooltip:hover {
+  background: #5a6268;
+}
+
+.song-note-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.song-note-editor textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.song-note-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.song-note-actions button {
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-save-changes {
+  background: var(--success-color);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-save-changes:hover {
+  background: #0f9d58;
+  transform: translateY(-1px);
+}
+
+.btn-cancel-edit {
+  background: #6c757d;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel-edit:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+.btn-clear-note {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear-note:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+/* =================================
+   MEDIA QUERIES - RESPONSIVE
+   ================================= */
+
+/* Tablet y pantallas medianas */
+@media (max-width: 1024px) {
+  body {
+    overflow: auto;
+    height: auto;
+  }
+
+  .container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Móviles y pantallas pequeñas */
 @media (max-width: 768px) {
+
+  /* Layout general */
+  body {
+    overflow: auto;
+    height: auto;
+  }
+
+  .container {
+    grid-template-columns: 1fr;
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  /* Modales */
+  .modal-content {
+    width: 95%;
+    margin: 1rem;
+  }
+
+  /* Página de gestión de canciones */
+  .song-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .song-card-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .song-meta {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .delete-btn {
+    width: 100%;
+  }
+
+  /* Página de verbos */
   .search-container {
     flex-direction: column;
   }

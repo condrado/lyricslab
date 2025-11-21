@@ -4,6 +4,147 @@
 
 const songs = [
     {
+        id: 'atqp6FvQIyBa34Lp6q2v',
+        title: 'Be Yourself',
+        artist: 'Audioslave',
+        youtubeId: 'WC5FdFlUcl0',
+        lyrics: `Someone falls to pieces
+Sleepin all alone
+Someone kills the pain
+Spinning in the silence
+She finally drifts away
+Someone gets excited
+In a chapel yard
+Catches a bouquet
+Another lays a dozen
+White roses on a grave
+To be yourself is all that you can do
+To be yourself is all that you can do
+Someone finds salvation in everyone
+And another only pain
+Someone tries to hide himself
+Down inside himself he prays
+Someone swears his true love
+Untill the end of time
+Another runs away
+Separate or united!
+Healthy or insane!
+To be yourself is all that you can do
+To be yourself is all that you can do
+To be yourself is all that you can do
+To be yourself is all that you can do
+Even when you've paid enough
+Been pulled apart
+Or been held up
+Every single memory of
+The good or bad, faces of love
+Dont lose any sleep tonight
+I'm sure everything will end up alright
+You may win or lose
+But to be yourself is all that you can do
+To be yourself is all that you can do
+To be yourself is all that you can do
+To be yourself is all that you can do 
+To be yourself is all that you can
+Be yourself is all that you can
+Be yourself is all that you can do.`,
+        tooltips: {},
+        songNote: ""
+    },
+    {
+        id: 'gorillaz-clint-eastwood',
+        title: 'Clint Eastwood',
+        artist: 'Gorillaz',
+        youtubeId: '1V_xRb0x9aw',
+        lyrics: `Hoo-hoo-hoo-hoo-hoo
+
+I ain't happy, I'm feeling glad
+I got sunshine in a bag
+I'm useless, but not for long
+The future is coming on
+I ain't happy, I'm feeling glad
+I got sunshine in a bag
+I'm useless, but not for long
+The future is coming on
+It's coming on, it's coming on
+It's coming on, it's coming on
+
+[Del Tha Funky Homosapien]
+Finally, someone let me out of my cage
+Now, time for me is nothing, 'cause I'm countin' no age
+Nah, I couldn't be there, now you shouldn't be scared
+I'm good at repairs, and I'm under each snare
+Intangible, bet you didn't think, so I command you to
+Panoramic view, look, I'll make it all manageable
+Pick and choose, sit and lose, all you different crews
+Chicks and dudes, who you think is really kickin' tunes?
+Picture you getting down in a picture tube
+Like you lit the fuse, you think it's fictional?
+Mystical? Maybe, spiritual hero
+Who appears in you to clear your view when you're too crazy?
+Lifeless to those, the definition for what life is
+Priceless to you, because I put you on the hype shit
+You like it? Gun smokin', righteous with one toke
+Get psychic among those, possess you with one dose
+
+[2D + (Del Tha Funky Homosapien)]
+I ain't happy, I'm feeling glad
+I got sunshine in a bag
+I'm useless, but not for long
+The future is coming on
+I ain't happy, I'm feeling glad
+I got sunshine in a bag
+I'm useless, but not for long
+The future is coming on (That's right)
+It's coming on, it's coming on
+It's coming on, it's coming on
+
+[Del Tha Funky Homosapien]
+The essence, the basics, without it, you make it
+Allow me to make this childlike in nature
+Rhythm, you have it or you don't, that's a fallacy
+I'm in them, every sproutin' tree, every child of peace
+Every cloud and sea, you see with your eyes
+I see destruction and demise, corruption in disguise (That's right)
+From this fuckin' enterprise, now I'm sucked into your lies
+Through Russel, not his muscles
+But percussion he provides for me as a guide, y'all can see me now
+'Cause you don't see with your eye, you perceive with your mind
+That's the inner (Fuck 'em) so I'ma stick around with Russ and be a mentor
+Bust a few rhymes so motherfuckers remember
+Where the thought is, I brought all this
+So you can survive when law is lawless (Right here)
+Feelings, sensations that you thought was dead
+No squealing and remember that it's all in your head
+
+I ain't happy, I'm feeling glad
+I got sunshine in a bag
+I'm useless, but not for long
+The future is coming on
+I ain't happy, I'm feeling glad
+I got sunshine in a bag
+I'm useless, but not for long
+My future is coming on
+It's coming on, it's coming on
+It's coming on, it's coming on
+
+My future is coming on
+It's coming on, it's coming on
+It's coming on, it's coming on
+My future is coming on
+It's coming on, it's coming on
+It's coming on, it's coming on
+My future is coming on
+It's coming on, it's coming on
+My future is coming on
+It's coming on, it's coming on
+My future is coming on
+It's coming on, it's coming on
+My future`,
+        tooltips: {},
+        songNote: ""
+    },
+    {
         id: 'linkin-park-breaking-the-habit',
         title: 'Breaking the Habit',
         artist: 'Linkin Park',
@@ -114,95 +255,40 @@ I'm tired of being what you want me to be`,
         songNote: "POPO"
     },
     {
-        id: 'gorillaz-clint-eastwood',
-        title: 'Clint Eastwood',
-        artist: 'Gorillaz',
-        youtubeId: '1V_xRb0x9aw',
-        lyrics: `Hoo-hoo-hoo-hoo-hoo
-
-I ain't happy, I'm feeling glad
-I got sunshine in a bag
-I'm useless, but not for long
-The future is coming on
-I ain't happy, I'm feeling glad
-I got sunshine in a bag
-I'm useless, but not for long
-The future is coming on
-It's coming on, it's coming on
-It's coming on, it's coming on
-
-[Del Tha Funky Homosapien]
-Finally, someone let me out of my cage
-Now, time for me is nothing, 'cause I'm countin' no age
-Nah, I couldn't be there, now you shouldn't be scared
-I'm good at repairs, and I'm under each snare
-Intangible, bet you didn't think, so I command you to
-Panoramic view, look, I'll make it all manageable
-Pick and choose, sit and lose, all you different crews
-Chicks and dudes, who you think is really kickin' tunes?
-Picture you getting down in a picture tube
-Like you lit the fuse, you think it's fictional?
-Mystical? Maybe, spiritual hero
-Who appears in you to clear your view when you're too crazy?
-Lifeless to those, the definition for what life is
-Priceless to you, because I put you on the hype shit
-You like it? Gun smokin', righteous with one toke
-Get psychic among those, possess you with one dose
-
-[2D + (Del Tha Funky Homosapien)]
-I ain't happy, I'm feeling glad
-I got sunshine in a bag
-I'm useless, but not for long
-The future is coming on
-I ain't happy, I'm feeling glad
-I got sunshine in a bag
-I'm useless, but not for long
-The future is coming on (That's right)
-It's coming on, it's coming on
-It's coming on, it's coming on
-
-[Del Tha Funky Homosapien]
-The essence, the basics, without it, you make it
-Allow me to make this childlike in nature
-Rhythm, you have it or you don't, that's a fallacy
-I'm in them, every sproutin' tree, every child of peace
-Every cloud and sea, you see with your eyes
-I see destruction and demise, corruption in disguise (That's right)
-From this fuckin' enterprise, now I'm sucked into your lies
-Through Russel, not his muscles
-But percussion he provides for me as a guide, y'all can see me now
-'Cause you don't see with your eye, you perceive with your mind
-That's the inner (Fuck 'em) so I'ma stick around with Russ and be a mentor
-Bust a few rhymes so motherfuckers remember
-Where the thought is, I brought all this
-So you can survive when law is lawless (Right here)
-Feelings, sensations that you thought was dead
-No squealing and remember that it's all in your head
-
-I ain't happy, I'm feeling glad
-I got sunshine in a bag
-I'm useless, but not for long
-The future is coming on
-I ain't happy, I'm feeling glad
-I got sunshine in a bag
-I'm useless, but not for long
-My future is coming on
-It's coming on, it's coming on
-It's coming on, it's coming on
-
-My future is coming on
-It's coming on, it's coming on
-It's coming on, it's coming on
-My future is coming on
-It's coming on, it's coming on
-It's coming on, it's coming on
-My future is coming on
-It's coming on, it's coming on
-My future is coming on
-It's coming on, it's coming on
-My future is coming on
-It's coming on, it's coming on
-My future`,
+        id: 'lv6QFMek1TmOAKqGf3iw',
+        title: 'Toxicity',
+        artist: 'System Of A Down',
+        youtubeId: 'iywaBOMvYLI',
+        lyrics: `Conversion, software version 7.0
+Looking at life through the eyes of a tired hub
+Eating seeds as a pastime activity
+The toxicity of our city, of our city
+You, what do you own the world?
+How do you own disorder, disorder
+Now somewhere between the sacred silence
+Sacred silence and sleep
+Somewhere, between the sacred silence and sleep
+Disorder, disorder, disorder
+More wood for their fires, loud neighbors
+Flashlight reveries caught in the headlights of a truck
+Eating seeds as a pastime activity
+The toxicity of our city, of our city
+Now, what do you own the world?
+How do you own disorder, disorder
+Now somewhere between the sacred silence
+Sacred silence and sleep
+Somewhere between the sacred silence and sleep
+Disorder, disorder, disorder
+You, you what do you own the world?
+How do you own disorder? 
+Now somewhere between the sacred silence
+Sacred silence and sleep
+Somewhere, between the sacred silence and sleep
+Disorder, disorder, disorder
+When I became the sun
+I shone life into the man's hearts
+When I became the sun
+I shone life into the man's hearts`,
         tooltips: {},
         songNote: ""
     },

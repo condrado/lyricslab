@@ -2,6 +2,10 @@
 
 let songsData = [];
 let originalSongsIds = []; // IDs de canciones originales de songs.js
+let db = null; // Firestore database instance
+let useFirebase = false; // Flag para saber si Firebase está disponible
+let currentEditingSong = null; // Canción que se está editando
+let currentTooltipLineIndex = null; // Índice de la línea del tooltip que se está editando
 
 // Elementos del DOM
 const songSelect = document.getElementById('songSelect');
@@ -18,13 +22,93 @@ const cancelAddSongBtn = document.getElementById('cancelAddSongBtn');
 const manualLyricsGroup = document.getElementById('manualLyricsGroup');
 const fetchLyricsStatus = document.getElementById('fetchLyricsStatus');
 
+// Elementos para editar canción
+const editSongModal = document.getElementById('editSongModal');
+const closeEditModalBtn = document.querySelector('.close-edit-modal');
+const editSongTitle = document.getElementById('editSongTitle');
+const editSongArtist = document.getElementById('editSongArtist');
+const editSongNote = document.getElementById('editSongNote');
+const editLyricsContainer = document.getElementById('editLyricsContainer');
+const saveEditBtn = document.getElementById('saveEditBtn');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+// Elementos para editar tooltip
+const tooltipEditModal = document.getElementById('tooltipEditModal');
+const closeTooltipEditModalBtn = document.querySelector('.close-tooltip-edit-modal');
+const tooltipEditLyricText = document.getElementById('tooltipEditLyricText');
+const tooltipEditText = document.getElementById('tooltipEditText');
+const saveTooltipEditBtn = document.getElementById('saveTooltipEditBtn');
+const removeTooltipEditBtn = document.getElementById('removeTooltipEditBtn');
+const cancelTooltipEditBtn = document.getElementById('cancelTooltipEditBtn');
+
 // Inicializar cuando el DOM esté listo
-function init() {
-    loadSongs();
+async function init() {
+    console.log('🚀 Inicializando gestión de canciones...');
+    
+    // Intentar inicializar Firebase
+    await initFirebase();
+    
+    // Cargar canciones desde Firebase o fallback a local
+    if (useFirebase) {
+        await loadSongsFromFirebase();
+    } else {
+        loadSongs();
+    }
+    
     populateSongSelector();
     renderSongs();
     setupEventListeners();
     setupMenuToggle();
+    
+    console.log('✅ Gestión de canciones inicializada');
+}
+
+// Inicializar Firebase
+async function initFirebase() {
+    try {
+        if (typeof firebase === 'undefined') {
+            console.warn('⚠️ Firebase SDK no disponible');
+            useFirebase = false;
+            return;
+        }
+        
+        if (typeof window.firebaseConfig === 'undefined') {
+            console.warn('⚠️ firebaseConfig no disponible');
+            useFirebase = false;
+            return;
+        }
+        
+        // Inicializar Firebase
+        firebase.initializeApp(window.firebaseConfig);
+        db = firebase.firestore();
+        useFirebase = true;
+        console.log('✅ Firebase inicializado en manage-songs');
+    } catch (error) {
+        console.warn('⚠️ Error al inicializar Firebase:', error);
+        console.log('📂 Usando modo local (localStorage)');
+        useFirebase = false;
+    }
+}
+
+// Cargar canciones desde Firebase
+async function loadSongsFromFirebase() {
+    try {
+        console.log('📡 Cargando canciones desde Firebase...');
+        const snapshot = await db.collection('songs').get();
+        songsData = [];
+        snapshot.forEach(doc => {
+            songsData.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        console.log(`✅ ${songsData.length} canciones cargadas desde Firebase`);
+    } catch (error) {
+        console.error('❌ Error al cargar desde Firebase:', error);
+        console.log('📂 Fallback a modo local');
+        useFirebase = false;
+        loadSongs();
+    }
 }
 
 // Cargar canciones desde songs.js y localStorage
@@ -138,6 +222,8 @@ function createSongCard(song) {
     card.dataset.songId = song.id;
 
     const lyricsLength = song.lyrics ? song.lyrics.length : 0;
+    const tooltipsCount = song.tooltips ? Object.keys(song.tooltips).length : 0;
+    const hasNote = song.songNote && song.songNote.trim() !== '';
 
     card.innerHTML = `
         <div class="song-card-header" data-clickable="true">
@@ -147,17 +233,24 @@ function createSongCard(song) {
             <div class="song-meta">
                 <span>YouTube: ${song.youtubeId}</span>
                 <span>${lyricsLength} caracteres</span>
+                ${tooltipsCount > 0 ? `<span>💬 ${tooltipsCount} tooltips</span>` : ''}
+                ${hasNote ? '<span>📝 Nota</span>' : ''}
             </div>
         </div>
-        <button class="delete-btn" onclick="event.stopPropagation(); deleteSong('${song.id}', '${song.title.replace(/'/g, "\\'")}')">
-            Eliminar
-        </button>
+        <div class="song-actions">
+            <button class="edit-btn" onclick="event.stopPropagation(); openEditSongModal('${song.id}')">
+                ✏️ Editar
+            </button>
+            <button class="delete-btn" onclick="event.stopPropagation(); deleteSong('${song.id}', '${song.title.replace(/'/g, "\\'")}')">
+                🗑️ Eliminar
+            </button>
+        </div>
     `;
 
     // Hacer click en la canción para ir a reproducir
     card.addEventListener('click', (e) => {
-        // No redirigir si se hizo clic en el botón de eliminar
-        if (e.target.closest('.delete-btn')) {
+        // No redirigir si se hizo clic en los botones
+        if (e.target.closest('.edit-btn') || e.target.closest('.delete-btn')) {
             return;
         }
         
@@ -169,7 +262,7 @@ function createSongCard(song) {
         window.location.href = 'index.html';
     });
 
-    // Cambiar cursor al hover (excepto en el botón)
+    // Cambiar cursor al hover (excepto en los botones)
     const header = card.querySelector('.song-card-header');
     header.style.cursor = 'pointer';
 
@@ -178,38 +271,51 @@ function createSongCard(song) {
 
 // Eliminar canción
 async function deleteSong(songId, songTitle) {
-    if (!confirm(`¿Estás seguro de eliminar "${songTitle}"?\n\nEsto eliminará:\n- La canción de songs.js\n- Todas las notas asociadas\n- Los datos del localStorage`)) {
+    if (!confirm(`¿Estás seguro de eliminar "${songTitle}"?\n\nEsto eliminará:\n- La canción\n- Todas las notas asociadas\n- Los datos del almacenamiento`)) {
         return;
     }
 
     console.log(`[DELETE] Eliminando canción: ${songId}`);
 
-    // 1. Eliminar del array local
-    const index = songsData.findIndex(s => s.id === songId);
-    if (index !== -1) {
-        songsData.splice(index, 1);
+    try {
+        // Eliminar de Firebase o localmente
+        if (useFirebase) {
+            await db.collection('songs').doc(songId).delete();
+            console.log('[FIREBASE] Canción eliminada de Firebase');
+        } else {
+            // Modo local: eliminar del array y localStorage
+            const customSongsOnly = songsData.filter(song => !originalSongsIds.includes(song.id) && song.id !== songId);
+            localStorage.setItem('customSongs', JSON.stringify(customSongsOnly));
+            console.log(`[STORAGE] CustomSongs actualizado: ${customSongsOnly.length} canciones personalizadas`);
+            
+            // Guardar en songs.js vía servidor
+            await saveSongsToServer();
+        }
+        
+        // Eliminar del array local
+        const index = songsData.findIndex(s => s.id === songId);
+        if (index !== -1) {
+            songsData.splice(index, 1);
+        }
+        
+        // Eliminar notas asociadas del localStorage (si existen)
+        const notes = JSON.parse(localStorage.getItem('musicNotesApp') || '{}');
+        if (notes[songId]) {
+            delete notes[songId];
+            localStorage.setItem('musicNotesApp', JSON.stringify(notes));
+        }
+        
+        // Re-renderizar
+        renderSongs();
+        populateSongSelector();
+        
+        console.log(`[SUCCESS] Canción eliminada: ${songId}`);
+        alert(`✅ Canción "${songTitle}" eliminada correctamente`);
+        
+    } catch (error) {
+        console.error('[ERROR] Error al eliminar canción:', error);
+        alert('❌ Error al eliminar la canción: ' + error.message);
     }
-
-    // 2. Actualizar localStorage (solo canciones NO originales)
-    const customSongsOnly = songsData.filter(song => !originalSongsIds.includes(song.id));
-    localStorage.setItem('customSongs', JSON.stringify(customSongsOnly));
-    console.log(`[STORAGE] CustomSongs actualizado: ${customSongsOnly.length} canciones personalizadas`);
-
-    // 3. Eliminar notas asociadas
-    const notes = JSON.parse(localStorage.getItem('notes') || '{}');
-    if (notes[songId]) {
-        delete notes[songId];
-        localStorage.setItem('notes', JSON.stringify(notes));
-    }
-
-    // 4. Guardar en songs.js vía servidor (si está disponible)
-    await saveSongsToServer();
-
-    // 5. Re-renderizar
-    renderSongs();
-    populateSongSelector(); // Actualizar selector
-
-    console.log(`[SUCCESS] Canción eliminada: ${songId}`);
 }
 
 // Guardar en songs.js vía servidor
@@ -300,7 +406,7 @@ function setupEventListeners() {
     // Botón añadir canción
     addSongBtn.addEventListener('click', openAddSongModal);
     
-    // Cerrar modal
+    // Cerrar modal añadir
     closeAddSongModalBtn.addEventListener('click', closeAddSongModal);
     cancelAddSongBtn.addEventListener('click', closeAddSongModal);
     
@@ -309,6 +415,36 @@ function setupEventListeners() {
     
     // Añadir letra manual
     addManualLyricsBtn.addEventListener('click', handleAddManualLyrics);
+    
+    // Cerrar modal editar
+    if (closeEditModalBtn) closeEditModalBtn.addEventListener('click', closeEditSongModal);
+    if (cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditSongModal);
+    if (saveEditBtn) saveEditBtn.addEventListener('click', saveSongEdits);
+    
+    // Eliminar nota de canción
+    const clearSongNoteBtn = document.getElementById('clearSongNoteBtn');
+    console.log('clearSongNoteBtn encontrado:', clearSongNoteBtn);
+    if (clearSongNoteBtn) {
+        clearSongNoteBtn.addEventListener('click', () => {
+            console.log('🗑️ Botón eliminar nota clickeado');
+            clearSongNote();
+        });
+    }
+    
+    // Cerrar modal tooltip
+    if (closeTooltipEditModalBtn) closeTooltipEditModalBtn.addEventListener('click', closeTooltipEditModal);
+    if (cancelTooltipEditBtn) cancelTooltipEditBtn.addEventListener('click', closeTooltipEditModal);
+    if (saveTooltipEditBtn) saveTooltipEditBtn.addEventListener('click', saveTooltipEdit);
+    if (removeTooltipEditBtn) removeTooltipEditBtn.addEventListener('click', removeTooltipEdit);
+    
+    // Cerrar modales al hacer click fuera
+    editSongModal.addEventListener('click', (e) => {
+        if (e.target === editSongModal) closeEditSongModal();
+    });
+    
+    tooltipEditModal.addEventListener('click', (e) => {
+        if (e.target === tooltipEditModal) closeTooltipEditModal();
+    });
 }
 
 // Abrir modal de añadir canción
@@ -363,20 +499,40 @@ async function handleFetchLyrics() {
 
         // Crear nueva canción
         const newSong = {
-            id: LyricsAPI.generateSongId(artist, title),
             title: title,
             artist: artist,
             youtubeId: youtubeId,
-            lyrics: lyrics.trim()
+            lyrics: lyrics.trim(),
+            tooltips: {},
+            songNote: ""
         };
 
-        // Añadir a la lista
-        songsData.push(newSong);
-        saveCustomSongs();
+        // Guardar en Firebase o localmente
+        if (useFirebase) {
+            try {
+                const docRef = await db.collection('songs').add({
+                    ...newSong,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                newSong.id = docRef.id;
+                songsData.push(newSong);
+                console.log('[FIREBASE] Canción añadida con ID:', docRef.id);
+                showStatus('Canción añadida a Firebase!', 'success');
+            } catch (error) {
+                console.error('[FIREBASE] Error:', error);
+                showStatus('Error al guardar en Firebase: ' + error.message, 'error');
+                fetchLyricsBtn.disabled = false;
+                return;
+            }
+        } else {
+            newSong.id = LyricsAPI.generateSongId(artist, title);
+            songsData.push(newSong);
+            await saveCustomSongs();
+            showStatus('Canción añadida correctamente', 'success');
+        }
+
         populateSongSelector();
         renderSongs();
-
-        showStatus('Canción añadida correctamente', 'success');
         
         setTimeout(() => {
             closeAddSongModal();
@@ -389,7 +545,7 @@ async function handleFetchLyrics() {
 }
 
 // Manejar añadir letra manual
-function handleAddManualLyrics() {
+async function handleAddManualLyrics() {
     const artist = songArtistInput.value.trim();
     const title = songTitleInput.value.trim();
     const youtubeUrl = songYoutubeInput.value.trim();
@@ -411,26 +567,56 @@ function handleAddManualLyrics() {
         return;
     }
 
-    // Crear nueva canción
-    const newSong = {
-        id: LyricsAPI.generateSongId(artist, title),
-        title: title,
-        artist: artist,
-        youtubeId: youtubeId,
-        lyrics: lyrics
-    };
+    showStatus('Guardando canción...', 'loading');
+    addManualLyricsBtn.disabled = true;
 
-    // Añadir a la lista
-    songsData.push(newSong);
-    saveCustomSongs();
-    populateSongSelector();
-    renderSongs();
+    try {
+        // Crear nueva canción
+        const newSong = {
+            title: title,
+            artist: artist,
+            youtubeId: youtubeId,
+            lyrics: lyrics,
+            tooltips: {},
+            songNote: ""
+        };
 
-    showStatus('Canción añadida correctamente', 'success');
-    
-    setTimeout(() => {
-        closeAddSongModal();
-    }, 1000);
+        // Guardar en Firebase o localmente
+        if (useFirebase) {
+            try {
+                const docRef = await db.collection('songs').add({
+                    ...newSong,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                newSong.id = docRef.id;
+                songsData.push(newSong);
+                console.log('[FIREBASE] Canción añadida con ID:', docRef.id);
+                showStatus('Canción añadida a Firebase!', 'success');
+            } catch (error) {
+                console.error('[FIREBASE] Error:', error);
+                showStatus('Error al guardar en Firebase: ' + error.message, 'error');
+                addManualLyricsBtn.disabled = false;
+                return;
+            }
+        } else {
+            newSong.id = LyricsAPI.generateSongId(artist, title);
+            songsData.push(newSong);
+            await saveCustomSongs();
+            showStatus('Canción añadida correctamente', 'success');
+        }
+
+        populateSongSelector();
+        renderSongs();
+        
+        setTimeout(() => {
+            closeAddSongModal();
+        }, 1000);
+        
+    } catch (error) {
+        showStatus('Error: ' + error.message, 'error');
+    } finally {
+        addManualLyricsBtn.disabled = false;
+    }
 }
 
 // Guardar canciones personalizadas
@@ -514,6 +700,348 @@ function setupMenuToggle() {
             menuDropdown.classList.remove('show');
         });
     });
+}
+
+// ==================== FUNCIONES DE EDICIÓN ====================
+
+// Abrir modal de editar canción
+function openEditSongModal(songId) {
+    const song = songsData.find(s => s.id === songId);
+    if (!song) return;
+    
+    currentEditingSong = song;
+    
+    editSongTitle.textContent = song.title;
+    editSongArtist.textContent = song.artist;
+    editSongNote.value = song.songNote || '';
+    
+    // Renderizar letra con tooltips
+    renderLyricsForEdit(song);
+    
+    // Auto-guardar songNote al escribir (con debounce)
+    let saveTimeout;
+    editSongNote.oninput = () => {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(async () => {
+            await autoSaveSongNote();
+        }, 1000); // Guarda 1 segundo después de dejar de escribir
+    };
+    
+    editSongModal.style.display = 'flex';
+}
+
+// Renderizar letra para edición
+function renderLyricsForEdit(song) {
+    editLyricsContainer.innerHTML = '';
+    
+    if (!song.lyrics || song.lyrics.trim() === '') {
+        editLyricsContainer.innerHTML = '<p style="color: var(--text-secondary);">Esta canción no tiene letra</p>';
+        return;
+    }
+    
+    const lines = song.lyrics.split('\n');
+    
+    lines.forEach((line, index) => {
+        const lineDiv = document.createElement('div');
+        lineDiv.className = 'edit-lyric-line';
+        lineDiv.dataset.lineIndex = index;
+        
+        if (line.trim() === '') {
+            lineDiv.classList.add('empty');
+            lineDiv.innerHTML = '&nbsp;';
+        } else {
+            lineDiv.textContent = line;
+            
+            // Marcar si tiene tooltip
+            if (song.tooltips && song.tooltips[index]) {
+                lineDiv.classList.add('has-tooltip');
+                lineDiv.title = 'Click para editar tooltip';
+            }
+            
+            // Click para editar tooltip
+            lineDiv.addEventListener('click', () => {
+                openTooltipEditModal(index, line, song);
+            });
+        }
+        
+        editLyricsContainer.appendChild(lineDiv);
+    });
+}
+
+// Cerrar modal de editar canción
+function closeEditSongModal() {
+    editSongModal.style.display = 'none';
+    currentEditingSong = null;
+    editSongNote.value = '';
+    editSongNote.oninput = null; // Limpiar event listener
+    editLyricsContainer.innerHTML = '';
+}
+
+// Auto-guardar nota de canción
+async function autoSaveSongNote() {
+    if (!currentEditingSong) return;
+    
+    const noteContent = editSongNote.value.trim();
+    
+    // Actualizar objeto local
+    currentEditingSong.songNote = noteContent;
+    const songIndex = songsData.findIndex(s => s.id === currentEditingSong.id);
+    if (songIndex !== -1) {
+        songsData[songIndex].songNote = noteContent;
+    }
+    
+    // Guardar en Firebase
+    if (useFirebase) {
+        try {
+            await db.collection('songs').doc(currentEditingSong.id).update({
+                songNote: noteContent,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('[FIREBASE] 💾 Nota auto-guardada:', noteContent.substring(0, 30) + '...');
+        } catch (error) {
+            console.error('[FIREBASE] ❌ Error al auto-guardar nota:', error);
+        }
+    } else {
+        localStorage.setItem('customSongs', JSON.stringify(songsData));
+        await saveCustomSongs();
+    }
+}
+
+// Eliminar nota de la canción
+async function clearSongNote() {
+    console.log('🗑️ clearSongNote() llamada');
+    console.log('currentEditingSong:', currentEditingSong);
+    console.log('useFirebase:', useFirebase);
+    
+    if (!currentEditingSong) {
+        console.error('❌ No hay canción en edición');
+        return;
+    }
+    
+    if (!confirm('¿Eliminar la nota de esta canción?')) {
+        console.log('❌ Usuario canceló');
+        return;
+    }
+    
+    // Limpiar textarea
+    editSongNote.value = '';
+    console.log('✅ Textarea limpiado');
+    
+    // Guardar inmediatamente en Firebase
+    if (useFirebase) {
+        try {
+            console.log('[FIREBASE] Intentando eliminar nota de:', currentEditingSong.id);
+            
+            const updateData = {
+                songNote: '',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            console.log('📤 DATOS QUE SE ENVÍAN A FIREBASE:', {
+                docId: currentEditingSong.id,
+                songNote: updateData.songNote,
+                songNoteLength: updateData.songNote.length,
+                songNoteType: typeof updateData.songNote,
+                songNoteValue: JSON.stringify(updateData.songNote)
+            });
+            
+            await db.collection('songs').doc(currentEditingSong.id).update(updateData);
+            
+            console.log('[FIREBASE] ✅ Nota eliminada de canción:', currentEditingSong.id);
+            
+            // Validar que se guardó correctamente
+            const docRef = await db.collection('songs').doc(currentEditingSong.id).get();
+            const savedData = docRef.data();
+            console.log('📥 VALIDACIÓN - Datos guardados en Firebase:', {
+                songNote: savedData.songNote,
+                songNoteLength: savedData.songNote ? savedData.songNote.length : 0,
+                songNoteType: typeof savedData.songNote,
+                songNoteIsEmpty: savedData.songNote === '',
+                songNoteValue: JSON.stringify(savedData.songNote)
+            });
+            
+            // Actualizar objeto local
+            currentEditingSong.songNote = '';
+            const songIndex = songsData.findIndex(s => s.id === currentEditingSong.id);
+            if (songIndex !== -1) {
+                songsData[songIndex].songNote = '';
+            }
+            
+            alert('✅ Nota eliminada correctamente');
+        } catch (error) {
+            console.error('[FIREBASE] Error al eliminar nota:', error);
+            alert('❌ Error al eliminar la nota: ' + error.message);
+            editSongNote.value = currentEditingSong.songNote || ''; // Restaurar
+        }
+    } else {
+        // Modo local
+        currentEditingSong.songNote = '';
+        const songIndex = songsData.findIndex(s => s.id === currentEditingSong.id);
+        if (songIndex !== -1) {
+            songsData[songIndex].songNote = '';
+        }
+        localStorage.setItem('customSongs', JSON.stringify(songsData));
+        await saveCustomSongs();
+        alert('✅ Nota eliminada correctamente');
+    }
+}
+
+// Guardar cambios de la canción
+async function saveSongEdits() {
+    if (!currentEditingSong) return;
+    
+    const noteContent = editSongNote.value.trim();
+    
+    // Actualizar nota en el objeto actual
+    currentEditingSong.songNote = noteContent;
+    
+    // Actualizar en el array principal
+    const songIndex = songsData.findIndex(s => s.id === currentEditingSong.id);
+    if (songIndex !== -1) {
+        songsData[songIndex].songNote = noteContent;
+        songsData[songIndex].tooltips = currentEditingSong.tooltips || {};
+    }
+    
+    // Guardar en Firebase o localmente
+    if (useFirebase) {
+        try {
+            await db.collection('songs').doc(currentEditingSong.id).update({
+                songNote: noteContent,
+                tooltips: currentEditingSong.tooltips || {},
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('[FIREBASE] Canción actualizada:', {
+                id: currentEditingSong.id,
+                songNote: noteContent,
+                songNoteLength: noteContent.length,
+                tooltipsCount: Object.keys(currentEditingSong.tooltips || {}).length
+            });
+            
+            // Recargar datos desde Firebase para asegurar sincronización
+            await loadSongsFromFirebase();
+        } catch (error) {
+            console.error('[FIREBASE] Error:', error);
+            alert('Error al guardar en Firebase: ' + error.message);
+            return;
+        }
+    } else {
+        // Actualizar en localStorage
+        localStorage.setItem('customSongs', JSON.stringify(songsData));
+        await saveCustomSongs();
+    }
+    
+    closeEditSongModal();
+    renderSongs();
+    populateSongSelector();
+    
+    const message = noteContent 
+        ? '✅ Cambios guardados correctamente' 
+        : '✅ Cambios guardados (nota eliminada)';
+    alert(message);
+}
+
+// ==================== FUNCIONES DE TOOLTIP ====================
+
+// Abrir modal de editar tooltip
+function openTooltipEditModal(lineIndex, lineText, song) {
+    currentTooltipLineIndex = lineIndex;
+    tooltipEditLyricText.textContent = lineText;
+    
+    // Si ya existe tooltip, mostrarlo
+    if (song.tooltips && song.tooltips[lineIndex]) {
+        tooltipEditText.value = song.tooltips[lineIndex];
+        removeTooltipEditBtn.style.display = 'inline-block';
+    } else {
+        tooltipEditText.value = '';
+        removeTooltipEditBtn.style.display = 'none';
+    }
+    
+    tooltipEditModal.style.display = 'flex';
+    tooltipEditText.focus();
+}
+
+// Cerrar modal de editar tooltip
+function closeTooltipEditModal() {
+    tooltipEditModal.style.display = 'none';
+    currentTooltipLineIndex = null;
+    tooltipEditText.value = '';
+}
+
+// Guardar tooltip
+function saveTooltipEdit() {
+    if (currentTooltipLineIndex === null || !currentEditingSong) return;
+    
+    const tooltipContent = tooltipEditText.value.trim();
+    
+    if (!tooltipContent) {
+        alert('Por favor, escribe un texto para el tooltip');
+        return;
+    }
+    
+    // Inicializar tooltips si no existe
+    if (!currentEditingSong.tooltips) {
+        currentEditingSong.tooltips = {};
+    }
+    
+    // Guardar tooltip
+    currentEditingSong.tooltips[currentTooltipLineIndex] = tooltipContent;
+    
+    console.log(`[TOOLTIP] Guardado para línea ${currentTooltipLineIndex}`);
+    
+    // Re-renderizar letra
+    renderLyricsForEdit(currentEditingSong);
+    
+    closeTooltipEditModal();
+}
+
+// Eliminar tooltip
+async function removeTooltipEdit() {
+    if (currentTooltipLineIndex === null || !currentEditingSong) return;
+    
+    if (!confirm('¿Eliminar este tooltip?')) return;
+    
+    // Eliminar tooltip
+    if (currentEditingSong.tooltips) {
+        delete currentEditingSong.tooltips[currentTooltipLineIndex];
+    }
+    
+    console.log(`[TOOLTIP] Eliminado de línea ${currentTooltipLineIndex}`);
+    
+    // Guardar en Firebase o localStorage
+    if (useFirebase && db) {
+        try {
+            await db.collection('songs').doc(currentEditingSong.id).update({
+                tooltips: currentEditingSong.tooltips || {},
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            console.log('[FIREBASE] ✅ Tooltip eliminado de Firebase');
+            
+            // Actualizar array local
+            const songIndex = songsData.findIndex(s => s.id === currentEditingSong.id);
+            if (songIndex !== -1) {
+                songsData[songIndex].tooltips = currentEditingSong.tooltips;
+            }
+        } catch (error) {
+            console.error('[FIREBASE] ❌ Error al eliminar tooltip:', error);
+            alert('Error al eliminar tooltip en Firebase: ' + error.message);
+            closeTooltipEditModal();
+            return;
+        }
+    } else {
+        // Modo local
+        const songIndex = songsData.findIndex(s => s.id === currentEditingSong.id);
+        if (songIndex !== -1) {
+            songsData[songIndex].tooltips = currentEditingSong.tooltips;
+        }
+        localStorage.setItem('customSongs', JSON.stringify(songsData));
+        await saveCustomSongs();
+    }
+    
+    // Re-renderizar letra
+    renderLyricsForEdit(currentEditingSong);
+    
+    closeTooltipEditModal();
 }
 
 // Inicializar

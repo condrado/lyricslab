@@ -93,6 +93,81 @@
     </div>
   </div>
 
+  <!-- Modal para editar canción completa -->
+  <div id="editSongModal" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3>Editar Canción</h3>
+        <button class="close-edit-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="edit-song-info">
+          <h4 id="editSongTitle"></h4>
+          <p id="editSongArtist"></p>
+        </div>
+
+        <!-- Sección de Nota General -->
+        <div class="form-section">
+          <h4>📝 Nota General de la Canción</h4>
+          <textarea id="editSongNote" rows="4"
+            placeholder="Añade una nota general sobre esta canción (contexto, significado, curiosidades...)"></textarea>
+          <small class="markdown-help">Soporta Markdown: **negrita**, *cursiva*, [enlace](url)</small>
+          <div style="margin-top: 0.5rem;">
+            <button id="clearSongNoteBtn" class="btn-clear-note" type="button">🗑️ Eliminar Nota</button>
+          </div>
+        </div>
+
+        <!-- Sección de Tooltips por Línea -->
+        <div class="form-section">
+          <h4>💬 Tooltips por Línea</h4>
+          <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">
+            Haz click en cualquier línea para añadir o editar su tooltip
+          </p>
+          <div id="editLyricsContainer" class="edit-lyrics-container"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelEditBtn" class="btn-secondary">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para editar tooltip individual -->
+  <div id="tooltipEditModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Editar Tooltip</h3>
+        <button class="close-tooltip-edit-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="selected-lyric">
+          <strong>Línea seleccionada:</strong>
+          <p id="tooltipEditLyricText"></p>
+        </div>
+        <div class="form-group">
+          <label for="tooltipEditText">Texto del tooltip:</label>
+          <textarea id="tooltipEditText" rows="4" placeholder="Traducción, explicación, etc..."></textarea>
+          <small class="markdown-help">Soporta Markdown: **negrita**, *cursiva*, [enlace](url)</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="saveTooltipEditBtn" class="btn-primary">Guardar</button>
+        <button id="removeTooltipEditBtn" class="btn-secondary" style="display: none;">Eliminar Tooltip</button>
+        <button id="cancelTooltipEditBtn" class="btn-secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase Config -->
+  <script type="module">
+    import { firebaseConfig } from './js/firebaseConfig.js';
+    window.firebaseConfig = firebaseConfig;
+  </script>
+
   <!-- Scripts -->
   <script src="js/lyricsAPI.js"></script>
   <script src="data/songs.js"></script>
