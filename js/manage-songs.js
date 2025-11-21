@@ -7,6 +7,15 @@ let useFirebase = false; // Flag para saber si Firebase está disponible
 let currentEditingSong = null; // Canción que se está editando
 let currentTooltipLineIndex = null; // Índice de la línea del tooltip que se está editando
 
+// Helper functions para manejar scroll del body
+function lockBodyScroll() {
+    document.body.classList.add('modal-open');
+}
+
+function unlockBodyScroll() {
+    document.body.classList.remove('modal-open');
+}
+
 // Elementos del DOM
 const songSelect = document.getElementById('songSelect');
 const addSongBtn = document.getElementById('addSongBtn');
@@ -450,6 +459,7 @@ function setupEventListeners() {
 // Abrir modal de añadir canción
 function openAddSongModal() {
     addSongModal.style.display = 'flex';
+    lockBodyScroll();
     songArtistInput.value = '';
     songTitleInput.value = '';
     songYoutubeInput.value = '';
@@ -463,6 +473,7 @@ function openAddSongModal() {
 // Cerrar modal de añadir canción
 function closeAddSongModal() {
     addSongModal.style.display = 'none';
+    unlockBodyScroll();
 }
 
 // Manejar búsqueda de letra
@@ -728,6 +739,7 @@ function openEditSongModal(songId) {
     };
     
     editSongModal.style.display = 'flex';
+    lockBodyScroll();
 }
 
 // Renderizar letra para edición
@@ -771,6 +783,7 @@ function renderLyricsForEdit(song) {
 // Cerrar modal de editar canción
 function closeEditSongModal() {
     editSongModal.style.display = 'none';
+    unlockBodyScroll();
     currentEditingSong = null;
     editSongNote.value = '';
     editSongNote.oninput = null; // Limpiar event listener
@@ -957,12 +970,14 @@ function openTooltipEditModal(lineIndex, lineText, song) {
     }
     
     tooltipEditModal.style.display = 'flex';
+    lockBodyScroll();
     tooltipEditText.focus();
 }
 
 // Cerrar modal de editar tooltip
 function closeTooltipEditModal() {
     tooltipEditModal.style.display = 'none';
+    unlockBodyScroll();
     currentTooltipLineIndex = null;
     tooltipEditText.value = '';
 }

@@ -6,6 +6,15 @@ let songsData = []; // Copia mutable de songs
 let db = null; // Firestore database instance
 let useFirebase = false; // Flag para saber si Firebase está disponible
 
+// Helper functions para manejar scroll del body
+function lockBodyScroll() {
+    document.body.classList.add('modal-open');
+}
+
+function unlockBodyScroll() {
+    document.body.classList.remove('modal-open');
+}
+
 // Elementos del DOM
 const songSelect = document.getElementById('songSelect');
 const songTitle = document.getElementById('songTitle');
@@ -549,12 +558,14 @@ function openNoteModal() {
     }
     
     noteModal.classList.add('active');
+    lockBodyScroll();
     noteText.focus();
 }
 
 // Cerrar modal
 function closeNoteModal() {
     noteModal.classList.remove('active');
+    unlockBodyScroll();
     noteText.value = '';
     noteLink.value = '';
 }
@@ -772,6 +783,7 @@ function openAddSongModal() {
     fetchLyricsBtn.style.display = 'inline-block';
     addManualLyricsBtn.style.display = 'none';
     addSongModal.classList.add('active');
+    lockBodyScroll();
     
     console.log('[OK] Modal abierto');
 }
@@ -779,6 +791,7 @@ function openAddSongModal() {
 // Cerrar modal de añadir canción
 function closeAddSongModal() {
     addSongModal.classList.remove('active');
+    unlockBodyScroll();
 }
 
 // Manejar obtención de letra
@@ -1157,6 +1170,7 @@ function openTooltipModal(lineIndex, lineText, song) {
     }
     
     tooltipModal.style.display = 'flex';
+    lockBodyScroll();
     tooltipText.focus();
     
     console.log('[TOOLTIP] Modal abierto correctamente');
@@ -1165,6 +1179,7 @@ function openTooltipModal(lineIndex, lineText, song) {
 // Cerrar modal de tooltip
 function closeTooltipModal() {
     tooltipModal.style.display = 'none';
+    unlockBodyScroll();
     tooltipText.value = '';
     currentTooltipLineIndex = null;
 }
@@ -1417,6 +1432,7 @@ function openSongNoteModal() {
     }
     
     songNoteModal.style.display = 'flex';
+    lockBodyScroll();
     songNoteText.focus();
     
     console.log('[SONG NOTE] Modal abierto para:', currentSong.title);
@@ -1425,6 +1441,7 @@ function openSongNoteModal() {
 // Cerrar modal de nota general
 function closeSongNoteModal() {
     songNoteModal.style.display = 'none';
+    unlockBodyScroll();
     songNoteText.value = '';
 }
 

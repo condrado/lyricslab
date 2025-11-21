@@ -668,6 +668,11 @@ section h2 {
   backdrop-filter: blur(4px);
 }
 
+/* Bloquear scroll del body cuando modal está abierta */
+body.modal-open {
+  overflow: hidden;
+}
+
 .modal.active {
   display: flex;
   align-items: center;
@@ -679,6 +684,8 @@ section h2 {
   border-radius: 12px;
   width: 90%;
   max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 8px 32px var(--shadow);
   animation: modalSlideIn 0.3s ease;
 }
@@ -1824,7 +1831,9 @@ section h2 {
   /* Modales */
   .modal-content {
     width: 95%;
+    max-height: 95vh;
     margin: 1rem;
+    overflow-y: auto;
   }
 
   /* Página de gestión de canciones */
